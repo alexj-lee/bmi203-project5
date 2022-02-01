@@ -1,3 +1,4 @@
+![BuildStatus](https://github.com/alexj-lee/bmi203-project5/actions/workflows/test.yml/badge.svg)
 # Project 5
 Implementation of KMeans and Silhouette Scoring
 
