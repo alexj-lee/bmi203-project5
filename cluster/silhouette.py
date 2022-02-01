@@ -11,7 +11,7 @@ class Silhouette:
                 the name of the distance metric to use
         """
 
-        metric = distance.__dict__[metric]
+        metric = distance.__dict__.get(metric)
         # TODO: don't do it this way, scipy docs say that its better to pass the string so you get the C version
 
         if metric is None:
@@ -44,7 +44,7 @@ class Silhouette:
             raise ValueError("X and y must be of same length.")
 
         # TODO: lookup if number of pts in a cluster is 0, for which s(i) = 0 according to wikipedia
-        pdist = cdist(X, X)
+        pdist = cdist(X, X, metric=self.metric)
         assert np.allclose(pdist, pdist.T)
 
         clusters = np.unique(y)
@@ -70,7 +70,7 @@ class Silhouette:
                 cluster_b_dict[clust_id] = _b
 
             b = cluster_b_dict[min(cluster_b_dict, key=cluster_b_dict.get)]
-            print(a, b, cluster_b_dict)
+            # print(a, b, cluster_b_dict)
 
             scores[idx] = (b - a) / max(a, b)
         return scores
