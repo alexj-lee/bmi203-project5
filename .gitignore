@@ -1,7 +1,13 @@
+# Testing notebook
+*ipynb*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
+# open files
+*.swp
 
 # C extensions
 *.so
