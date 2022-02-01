@@ -11,18 +11,25 @@ class Silhouette:
                 the name of the distance metric to use
         """
 
-        metric = distance.__dict__.get(metric)
-        # TODO: don't do it this way, scipy docs say that its better to pass the string so you get the C version
+        self.metric = metric  # we want to store it as a string because the string referenced versions of the fns are in C
 
-        if metric is None:
-            raise ValueError(
-                'Argument "metric" must be a valid pairwise distance metric found in scipy.spatial.distance.'
-            )
-        elif callable(metric) is False:
-            raise ValueError(
-                f"Metric must be a function found in scipy.spatial.distance. Found object is of type {type(metric)}"
-            )
-        self.metric = metric
+        if metric is None or isinstance(metric, str):
+            metric = distance.__dict__.get(metric, None)
+            if metric is None:
+                raise ValueError(
+                    'Argument "metric" must be a valid pairwise distance metric found in scipy.spatial.distance.'
+                )
+
+            if callable(metric) is False:
+                raise ValueError(
+                    f"Metric must be a function found in scipy.spatial.distance. Found object is of type {type(metric)}"
+                )
+
+        if callable(metric):
+            try:
+                metric([0, 1], [0, 1])
+            except:
+                raise ValueError("Couldn't call provided metric function with two args")
 
     def score(self, X: np.ndarray, y: np.ndarray) -> np.ndarray:
         """
@@ -64,13 +71,11 @@ class Silhouette:
                 if clust_id == cluster_identity:
                     continue
 
-                # lookup = np.intersect1d(np.where(y == clust_id))
                 lookup = np.where(y == clust_id)
                 _b = pdist[idx, lookup].mean()
                 cluster_b_dict[clust_id] = _b
 
             b = cluster_b_dict[min(cluster_b_dict, key=cluster_b_dict.get)]
-            # print(a, b, cluster_b_dict)
 
             scores[idx] = (b - a) / max(a, b)
         return scores

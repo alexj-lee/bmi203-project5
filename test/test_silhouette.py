@@ -22,11 +22,21 @@ def mixed_data():
 
 
 def test_silhouette_bad_args(mixed_data):
+
+    # test whether providing a nonexistent distance raises error
     with pytest.raises(ValueError, match=r"must be a valid pairwise distance metric"):
         silhouette = cluster.Silhouette(metric="notadistance")
 
+    def bad_func(x):
+        pass
+
+    with pytest.raises(ValueError, match=r"Couldn't call provided metric"):
+        silhouette = cluster.Silhouette(metric=bad_func)
+
     x, y = mixed_data
-    silhouette = cluster.Silhouette(metric="minkowski")
+    silhouette = cluster.Silhouette(
+        metric="minkowski"
+    )  # test whether class can raise invalid lengths of x, y
     with pytest.raises(ValueError, match=r"X and y must be of same length"):
         silhouette.score(x[:5], y)
 
@@ -36,6 +46,7 @@ def test_silhouette_scoring(mixed_data):
     silhouette = cluster.Silhouette(metric="euclidean")
     scores = silhouette.score(x, y)
 
+    # test for correct values with euclidean and cosine distance metric
     assert np.isclose(scores.mean(), 0.0680252)
     assert np.isclose(scores.sum(), 13.605)
 
