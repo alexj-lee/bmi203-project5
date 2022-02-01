@@ -58,9 +58,10 @@ def test_kmeans_mixed(mixed_data):
     kmeans.fit(x)
     labels_pred = kmeans.predict(x)
 
-    for idx, num in zip(range(k), [2, 2, 1]):
+    for idx, num in zip(range(k), (3, 3, 3)):
+
         assert (
-            len(np.unique(y[np.where(labels_pred == idx)])) == num
+            len(np.unique(labels_pred[np.where(y == idx)])) == num
         ), "Should have found the right mixing for this group"
 
     # for this test we expect label 1 and 2 to be mixed but not label 3; see the test_data_mixed_multipanel.png

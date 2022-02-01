@@ -153,11 +153,8 @@ class KMeans:
         score_current = score_prev
         delta = abs(score_current - score_prev)
 
-        print("starting", delta < self.tol, iteration < self.max_iter)
-
         while iteration < self.max_iter:
             cdist = self._cluster_cdist(self.x, centroids)
-            # return cdist, centroids
             best_centroids = cdist.argmin(1)
 
             score_prev = score_current
