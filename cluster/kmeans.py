@@ -30,33 +30,60 @@ class KMeans:
         self._validate_init()
 
     def _validate_init(self):
-        metric = distance.__dict__.get(self.metric)
 
-        if metric is None:
-            raise ValueError(
-                'Argument "metric" must be a valid pairwise distance metric found in scipy.spatial.distance.'
+        """
+        This probably isnt the best way to do this, but according to the scipy docs if you feed a string distance
+        to scipy.distance.cdist or pdist, the C version of the distance fn will get called
+        so it's probably best to use the string version if the user provides; we store this as self.metric.
+        But we also need to call the single (x,y) callable version of the function so we will store that as self.distance.
+        """
+
+        if self.metric is None or isinstance(self.metric, str):
+            metric = distance.__dict__.get(self.metric, None)
+            self.distance = metric
+            if metric is None:
+                raise ValueError(
+                    'Argument "metric" must be a valid pairwise distance metric found in scipy.spatial.distance.'
+                )
+            elif callable(metric) is False:
+                # basically if we get something in scipy.distance, were going to assume its right.
+                # it seems unlikely that someone is going to call spatial.cdist here or something totally irrelevant
+                raise ValueError(
+                    f"Metric (str) must be a function found in scipy.spatial.distance. Found object is of type {type(self.metric)}"
+                )
+
+        elif callable(self.metric):
+            try:
+                x = np.array([1, 2])[None, :]  # will be of shape 1, 2
+                y = np.array([1, 4])[None, :]  # will be of shape 1, 2
+                self.metric(x, y)
+                self.distance = self.metric
+                # if its a callable let's just assume that the user provided a reasonable metric function
+            except:
+                raise ValueError("Couldn't call provided metric function with two args")
+
+        else:
+            raise TypeError(
+                "Provided metric needs to be of a string that is a valid distance metric in scipy.distance OR a callable that can operate on two arguments."
             )
-        elif callable(metric) is False:
-            raise ValueError(
-                f"Metric must be a function found in scipy.spatial.distance. Found object is of type {type(metric)}"
-            )
 
-        self.distance = metric
-
+        # check if k is a number that is greater than 1
         if isinstance(self.k, (float, int)) is False:
             raise TypeError("Argument k must be numeric.")
 
         elif self.k <= 1:
             raise ValueError(f"Argument k must be larger than or equal to 2.")
 
+        # same for toleranec, but tol just needs to be greater than 0
         try:
             self.tol = float(self.tol)
         except:
             raise TypeError(f"Argument {self.tol} must be a numeric.")
 
-        if np.sign(self.tol) == -1 or np.greater_equal(self.tol, 0) is False:
+        if np.sign(self.tol) == -1 or np.greater(self.tol, 0) is False:
             raise ValueError("Argument tol must be positive.")
 
+        # max iter must be convertable to an integer
         try:
             self.max_iter = int(self.max_iter)
         except:
@@ -64,17 +91,6 @@ class KMeans:
 
         if self.max_iter <= 0:
             raise ValueError(f"Argument max_iter must be at least 1.")
-
-    def _init_pdist_matrix(self, x: np.ndarray):
-        if self.k <= len(x):
-            raise ValueError(
-                "Clustering input matrix has fewer or equal data points to k; clustering will not be meaningful. Please increase number of data points or reduce k."
-            )
-
-        if x.ndim != 2:
-            raise ValueError("Input matrix must be a 2D matrix.")
-
-        pass
 
     def _init_centroids(self):
         """
@@ -93,23 +109,36 @@ class KMeans:
         if getattr(self, "x") is None:
             raise Exception("You need to run fit before you run _init_centroids.")
 
-        centroids = np.zeros((self.k, self.num_features))
+        centroids = np.zeros((self.k, self.num_features))  # allocate the clusters
 
-        distances = np.full(self.num_data_points, np.inf).tolist()
-        probabilities = (np.ones(self.num_data_points) / self.num_data_points).tolist()
+        distances = np.full(
+            self.num_data_points, np.inf
+        ).tolist()  # get self.num_data_points long vector of infinities
+        probabilities = (
+            np.ones(self.num_data_points) / self.num_data_points
+        ).tolist()  # initialize probabilities to 1/n
 
-        indices = np.arange(len(self.x)).tolist()
+        # candidate indices for centroids selection
+        indices = np.arange(
+            len(self.x)
+        ).tolist()  # convenient to use indices here to index the data so we can remove the data points that werer selected as centroids for knn+
 
         for iter_idx in range(self.k):
-            centroid_idx = np.random.choice(indices, 1, p=probabilities).item()
+            centroid_idx = np.random.choice(
+                indices, 1, p=probabilities
+            ).item()  # pick a data point idx
             centroid_coords = self.x[centroid_idx]
-            centroids[iter_idx] = centroid_coords
+            centroids[iter_idx] = centroid_coords  # make that the iter_idx-th centroid
 
             for lst in (indices, probabilities, distances):
-                del lst[centroid_idx]
+                del lst[
+                    centroid_idx
+                ]  # remove the centroid_idx-th data point from the candidate list
 
-            for array_idx, pt_idx in enumerate(indices):
-                distance = self.distance(centroid_coords, self.x[pt_idx])
+            for array_idx, pt_idx in enumerate(
+                indices
+            ):  # get the distance between the centroid we just chose and the rest of the data points
+                distance = np.power(self.distance(centroid_coords, self.x[pt_idx]), 2)
 
                 if (
                     distance < distances[array_idx]
@@ -117,14 +146,28 @@ class KMeans:
                     distances[array_idx] = distance
 
             distance_sum = sum(distances)
-            probabilities = [distance / distance_sum for distance in distances]
+            probabilities = [
+                distance / distance_sum for distance in distances
+            ]  # probabilities are normalized over distance
 
         return centroids
 
     def _cluster_cdist(self, x: np.ndarray, centroids: np.ndarray):
-        return distance.cdist(x, centroids)
+        # compute the pairwise distance between the data points (x) and centroids
+        return distance.cdist(x, centroids, metric=self.metric)
 
     def _get_error(self, centroids: np.ndarray):
+        """
+        Returns the distance between the data point and the closest centroid as a sum over all data points.
+
+        Args:
+            centroids (np.ndarray): Centroids as a (k, nfeatures) matrix
+
+        Returns:
+            float: the distances between the best clusters and the centroids (as a sum)
+
+        """
+
         cdist = self._cluster_cdist(self.x, centroids)
         best_centroids = cdist.argmin(1)
 
@@ -142,20 +185,39 @@ class KMeans:
             mat: np.ndarray
                 A 2D matrix where the rows are observations and columns are features
         """
-        self.x = mat
-        self.num_data_points, self.num_features = mat.shape
-        centroids = self._init_centroids()
 
+        self.x = mat
+        if mat.ndim != 2:
+            raise ValueError("Input matrix x must be a 2D matrix.")
+
+        if len(mat) < self.k:
+            raise ValueError(
+                f"We can't fit k means with k={self.k} with {len(mat)} data points."
+            )
+
+        self.num_data_points, self.num_features = mat.shape
+        centroids = (
+            self._init_centroids()
+        )  # use knn++ to initialize centroids (ncentroids, nfeatures)
+
+        # initialize variables to help us figure out how long to loop
         tol = np.inf
         iteration = 0
 
-        score_prev = self._get_error(centroids)
+        score_prev = self._get_error(
+            centroids
+        )  # how far are the data points overall from their closest centroid as a single number
         score_current = score_prev
         delta = abs(score_current - score_prev)
 
+        # we're just going to go around on loops and each time we'll find the cloosest centroid to each point
+        # and then average the
         while iteration < self.max_iter:
+
             cdist = self._cluster_cdist(self.x, centroids)
-            best_centroids = cdist.argmin(1)
+            best_centroids = cdist.argmin(
+                1
+            )  # will be the best centroid's index for e/ data point as a n_data_pts long vect
 
             score_prev = score_current
             score_current = 0
@@ -163,7 +225,7 @@ class KMeans:
             for idx in range(self.k):
                 new_centroid_coord = self.x[best_centroids == idx].mean(
                     0
-                )  # is this right?
+                )  # average together the data points for the data points assigned to idx-th cluster
                 centroids[idx] = new_centroid_coord
 
             for idx in range(self.k):
@@ -200,7 +262,9 @@ class KMeans:
             raise Exception("K-means hasn't been fit yet.  Please run object.fit()")
 
         if mat.shape[1] != self.num_features:
-            pass
+            raise ValueError(
+                f"K-means must have {self.num_features} features for input data with current fit."
+            )
 
         cdist = self._cluster_cdist(mat, self.centroids)
         cluster_labels = cdist.argmin(1)
@@ -214,6 +278,7 @@ class KMeans:
             float
                 the squared-mean error of the fit model
         """
+
         if getattr(self, "final_error", None) is None:
             cdist = distance.cdist(self.x, self.centroids, "euclidean")
             best_centroids = cdist.argmin(1)
