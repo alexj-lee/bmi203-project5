@@ -34,10 +34,10 @@ def test_kmeans_bad_args():
     with pytest.raises(ValueError, match=r"k must be larger than or equal to 2"):
         kmeans = cluster.KMeans(k=1)
 
-    with pytest.raises(TypeError, match="must be a numeric"):
+    with pytest.raises(TypeError, match=r"must be a numeric"):
         kmeans = cluster.KMeans(k=5, max_iter="aa")
 
-    with pytest.raises(ValueError, match="must be positive"):
+    with pytest.raises(ValueError, match=r"must be positive"):
         kmeans = cluster.KMeans(k=5, tol=-1)
 
 
@@ -45,6 +45,12 @@ def test_kmeans_invalid_fit(cluster_data):
     x, y = cluster_data
     k = 3
     kmeans = cluster.KMeans(k=k, max_iter=100, tol=1e-6, metric="euclidean")
+
+    with pytest.raises(
+        ValueError,
+        match=r"You need to fit the centroids before you get the error value",
+    ):
+        kmeans.get_error()
 
     with pytest.raises(ValueError, match=r"can't fit k means with.*data points"):
         kmeans.fit(x[:2])

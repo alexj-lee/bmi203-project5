@@ -169,13 +169,14 @@ class KMeans:
         """
 
         cdist = self._cluster_cdist(self.x, centroids)
-        best_centroids = cdist.argmin(1)
+        cdist_sq = np.power(cdist, 2)
+        best_centroids = cdist_sq.argmin(1)
 
         score = 0
         for idx in range(self.k):
-            score += cdist[best_centroids == idx].sum()
+            score += cdist_sq[best_centroids == idx].sum()
 
-        return score
+        return cdist, score
 
     def fit(self, mat: np.ndarray):
         """
@@ -204,7 +205,7 @@ class KMeans:
         tol = np.inf
         iteration = 0
 
-        score_prev = self._get_error(
+        cdist, score_prev = self._get_error(
             centroids
         )  # how far are the data points overall from their closest centroid as a single number
         score_current = score_prev
@@ -212,15 +213,16 @@ class KMeans:
 
         # we're just going to go around on loops and each time we'll find the cloosest centroid to each point
         # and then average the
+
         while iteration < self.max_iter:
 
-            cdist = self._cluster_cdist(self.x, centroids)
+            # cdist = self._cluster_cdist(self.x, centroids)
             best_centroids = cdist.argmin(
                 1
             )  # will be the best centroid's index for e/ data point as a n_data_pts long vect
 
             score_prev = score_current
-            score_current = 0
+            #            score_current = 0
 
             for idx in range(self.k):
                 new_centroid_coord = self.x[best_centroids == idx].mean(
@@ -228,11 +230,7 @@ class KMeans:
                 )  # average together the data points for the data points assigned to idx-th cluster
                 centroids[idx] = new_centroid_coord
 
-            for idx in range(self.k):
-                new_cdist = self._cluster_cdist(self.x, centroids)
-
-                _score = new_cdist[best_centroids == idx].sum()
-                score_current += _score
+            cdist, score_current = self._get_error(centroids)
 
             iteration += 1
             delta = abs(score_current - score_prev)
@@ -242,7 +240,7 @@ class KMeans:
 
         self.centroids = centroids
         self._labels = best_centroids
-        self._error = score_current
+        self.final_error = score_current
         return centroids, best_centroids
 
     def predict(self, mat: np.ndarray) -> np.ndarray:
@@ -280,16 +278,12 @@ class KMeans:
         """
 
         if getattr(self, "final_error", None) is None:
-            cdist = distance.cdist(self.x, self.centroids, "euclidean")
-            best_centroids = cdist.argmin(1)
-            scores = [
-                cdist[best_centroids == centroid_idx].sum()
-                for centroid_idx in range(self.k)
-            ]
-            scores = sum(scores) / self.num_data_points
-            self.final_error = scores
-
-        return self.final_error
+            if getattr(self, "centroids", None) is None:
+                raise ValueError(
+                    "You need to fit the centroids before you get the error value."
+                )
+        else:
+            return self.final_error
 
     def get_centroids(self) -> np.ndarray:
         """
