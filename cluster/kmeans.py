@@ -158,23 +158,20 @@ class KMeans:
 
     def _get_error(self, centroids: np.ndarray):
         """
-        Returns the distance between the data point and the closest centroid as a sum over all data points.
+        Returns the distance between the data point and the closest centroid as an average over all data points.
 
         Args:
             centroids (np.ndarray): Centroids as a (k, nfeatures) matrix
 
         Returns:
-            float: the distances between the best clusters and the centroids (as a sum)
+            float: the distances between the best clusters and the centroids
 
         """
 
         cdist = self._cluster_cdist(self.x, centroids)
         cdist_sq = np.power(cdist, 2)
-        best_centroids = cdist_sq.argmin(1)
 
-        score = 0
-        for idx in range(self.k):
-            score += cdist_sq[best_centroids == idx].sum()
+        score = np.amin(cdist_sq, axis=1).mean()
 
         return cdist, score
 
