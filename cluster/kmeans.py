@@ -276,7 +276,7 @@ class KMeans:
 
         if getattr(self, "final_error", None) is None:
             if getattr(self, "centroids", None) is None:
-                raise ValueError(
+                raise RuntimeError(
                     "You need to fit the centroids before you get the error value."
                 )
         else:
@@ -290,4 +290,9 @@ class KMeans:
             np.ndarray
                 a `k x m` 2D matrix representing the cluster centroids of the fit model
         """
+
+        if getattr(self, "centroids", None) is None:
+            raise RuntimeError(
+                "You need to fit the centroids before you can return them."
+            )
         return self.centroids

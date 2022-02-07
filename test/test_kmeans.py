@@ -47,7 +47,7 @@ def test_kmeans_invalid_fit(cluster_data):
     kmeans = cluster.KMeans(k=k, max_iter=100, tol=1e-6, metric="euclidean")
 
     with pytest.raises(
-        ValueError,
+        RuntimeError,
         match=r"You need to fit the centroids before you get the error value",
     ):
         kmeans.get_error()
