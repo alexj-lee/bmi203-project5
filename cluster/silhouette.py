@@ -8,7 +8,7 @@ class Silhouette:
         """
         inputs:
             metric: str
-                The name of the distance metric that we want to do. We are going to explicitly
+                The name of the distance metric that we want to use.
         """
 
         self.metric = metric
@@ -32,6 +32,7 @@ class Silhouette:
                 y = np.array([1, 4])[None, :]  # will be of shape 1, 2
                 metric(x, y)
                 self.metric = metric  # if its a callable let's just assume that the user provided a reasonable metric function
+                # TODO: actually check that the metric is a metric in the mathematical sense
             except:
                 raise ValueError("Couldn't call provided metric function with two args")
 
@@ -100,7 +101,7 @@ class Silhouette:
                 cluster_b_dict[clust_id] = _b
 
             b = cluster_b_dict[
-                min(cluster_b_dict, key=cluster_b_dict.get)
+                min(cluster_b_dict, key=cluster_b_dict.get)  # type: ignore
             ]  # get the cluster ID for which the average distances are smallest
 
             scores[idx] = (b - a) / max(a, b)

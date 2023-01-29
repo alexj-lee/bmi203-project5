@@ -6,15 +6,11 @@ from scipy.spatial import distance
 
 
 class KMeans:
-    def __init__(
-        self, k: int, metric: str = "euclidean", tol: float = 1e-6, max_iter: int = 100
-    ):
+    def __init__(self, k: int, tol: float = 1e-6, max_iter: int = 100):
         """
         inputs:
             k: int
                 the number of centroids to use in cluster fitting
-            metric: str
-                the name of the distance metric to use
             tol: float
                 the minimum error tolerance from previous error during optimization to quit the model fit
             max_iter: int
@@ -22,7 +18,6 @@ class KMeans:
         """
 
         self.k = k
-        self.metric = metric
         self.tol = tol
         self.max_iter = max_iter
         self.centroids = None
@@ -30,43 +25,6 @@ class KMeans:
         self._validate_init()
 
     def _validate_init(self):
-
-        """
-        This probably isnt the best way to do this, but according to the scipy docs if you feed a string distance
-        to scipy.distance.cdist or pdist, the C version of the distance fn will get called
-        so it's probably best to use the string version if the user provides; we store this as self.metric.
-        But we also need to call the single (x,y) callable version of the function so we will store that as self.distance.
-        """
-
-        if self.metric is None or isinstance(self.metric, str):
-            metric = distance.__dict__.get(self.metric, None)
-            self.distance = metric
-            if metric is None:
-                raise ValueError(
-                    'Argument "metric" must be a valid pairwise distance metric found in scipy.spatial.distance.'
-                )
-            elif callable(metric) is False:
-                # basically if we get something in scipy.distance, were going to assume its right.
-                # it seems unlikely that someone is going to call spatial.cdist here or something totally irrelevant
-                raise ValueError(
-                    f"Metric (str) must be a function found in scipy.spatial.distance. Found object is of type {type(self.metric)}"
-                )
-
-        elif callable(self.metric):
-            try:
-                x = np.array([1, 2])[None, :]  # will be of shape 1, 2
-                y = np.array([1, 4])[None, :]  # will be of shape 1, 2
-                self.metric(x, y)
-                self.distance = self.metric
-                # if its a callable let's just assume that the user provided a reasonable metric function
-            except:
-                raise ValueError("Couldn't call provided metric function with two args")
-
-        else:
-            raise TypeError(
-                "Provided metric needs to be of a string that is a valid distance metric in scipy.distance OR a callable that can operate on two arguments."
-            )
-
         # check if k is a number that is greater than 1
         if isinstance(self.k, (float, int)) is False:
             raise TypeError("Argument k must be numeric.")
@@ -138,7 +96,9 @@ class KMeans:
             for array_idx, pt_idx in enumerate(
                 indices
             ):  # get the distance between the centroid we just chose and the rest of the data points
-                distance = np.power(self.distance(centroid_coords, self.x[pt_idx]), 2)
+                distance = np.power(
+                    distance.euclidean(centroid_coords, self.x[pt_idx]), 2
+                )
 
                 if (
                     distance < distances[array_idx]
@@ -154,7 +114,7 @@ class KMeans:
 
     def _cluster_cdist(self, x: np.ndarray, centroids: np.ndarray):
         # compute the pairwise distance between the data points (x) and centroids
-        return distance.cdist(x, centroids, metric=self.metric)
+        return distance.cdist(x, centroids)
 
     def _get_error(self, centroids: np.ndarray):
         """
@@ -211,6 +171,7 @@ class KMeans:
         # we're just going to go around on loops and each time we'll find the cloosest centroid to each point
         # and then average the
 
+        best_centroids = None
         while iteration < self.max_iter:
 
             # cdist = self._cluster_cdist(self.x, centroids)
