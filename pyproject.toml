@@ -1,7 +1,11 @@
 [build-system]
 requires = [ 
         "flit_core >=3.2,<4",
-        "python_version >= '3.7'"
+        "python_version >= '3.7'",
+        "scipy",
+        "numpy",
+        "matplotlib",
+        "sklearn"
         ]
 build-backend = "flit_core.buildapi"
 
