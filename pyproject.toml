@@ -5,7 +5,7 @@ requires = [
         "scipy",
         "numpy",
         "matplotlib",
-        "sklearn"
+        "scikit-learn"
         ]
 build-backend = "flit_core.buildapi"
 
@@ -21,7 +21,7 @@ dependencies = [
     "numpy",
     "scipy",
     "matplotlib",
-    "sklearn"  
+    "scikit-learn"  
 ]
 
 [project.urls]
