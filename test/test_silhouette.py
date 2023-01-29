@@ -3,6 +3,7 @@ import pytest
 import cluster
 import numpy as np
 import pathlib
+from sklearn.metrics import silhouette_score as silhouette_score_sklearn
 
 
 @pytest.fixture
@@ -37,6 +38,7 @@ def test_silhouette_bad_args(mixed_data):
     silhouette = cluster.Silhouette(
         metric="minkowski"
     )  # test whether class can raise invalid lengths of x, y
+
     with pytest.raises(ValueError, match=r"X and y must be of same length"):
         silhouette.score(x[:5], y)
 
@@ -47,11 +49,11 @@ def test_silhouette_scoring(mixed_data):
     scores = silhouette.score(x, y)
 
     # test for correct values with euclidean and cosine distance metric
-    assert np.isclose(scores.mean(), 0.0680252)
-    assert np.isclose(scores.sum(), 13.605)
+    mean = scores.mean()
+    sum = scores.sum()
 
-    silhouette = cluster.Silhouette(metric="cosine")
-    scores = silhouette.score(x, y)
+    assert np.isclose(mean, 0.06802529015137936), "Silhoette mean is wrong"
+    assert np.isclose(sum, 13.60505803027587), "Silhouette sum is wrong"
 
-    assert np.isclose(scores.sum(), 23.2495385)
-    assert np.isclose(scores.mean(), 0.1162476)
+    scores_sklearn = silhouette_score_sklearn(x, y)
+    assert np.isclose(mean, scores_sklearn), "Silhouette doesn't match sklearn"

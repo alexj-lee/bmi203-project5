@@ -1,8 +1,8 @@
 from cmath import inf
 from re import S
 import numpy as np
+from scipy.spatial import distance as dist
 from scipy.spatial.distance import cdist
-from scipy.spatial import distance
 
 
 class KMeans:
@@ -96,9 +96,7 @@ class KMeans:
             for array_idx, pt_idx in enumerate(
                 indices
             ):  # get the distance between the centroid we just chose and the rest of the data points
-                distance = np.power(
-                    distance.euclidean(centroid_coords, self.x[pt_idx]), 2
-                )
+                distance = np.power(dist.euclidean(centroid_coords, self.x[pt_idx]), 2)
 
                 if (
                     distance < distances[array_idx]
@@ -114,7 +112,7 @@ class KMeans:
 
     def _cluster_cdist(self, x: np.ndarray, centroids: np.ndarray):
         # compute the pairwise distance between the data points (x) and centroids
-        return distance.cdist(x, centroids)
+        return dist.cdist(x, centroids)
 
     def _get_error(self, centroids: np.ndarray):
         """
@@ -256,4 +254,5 @@ class KMeans:
             raise RuntimeError(
                 "You need to fit the centroids before you can return them."
             )
+
         return self.centroids

@@ -16,6 +16,8 @@ def cluster_data():
 @pytest.fixture
 def mixed_data():
     data = np.load(pathlib.Path(__file__).resolve().parent / "test_data_mixed.npy")
+    print(pathlib.Path(__file__).resolve().parent / "test_data_mixed.npy")
+    print(data, data.shape)
     x = data[:, :-1]  # 200 data points, 3 features
     y = data[:, -1]
     return (x, y)
@@ -89,6 +91,8 @@ def test_kmeans_mixed(mixed_data):
     labels_pred = kmeans.predict(x)
 
     # should be getting three classes for all three labels lookup (basically all the classes are squished together)
+    # basically this code looks at each gt cluster and finds the predicted labels using np.unique
+    # the correct behavior should be that the clustering gt is not just all one number
     for idx, num in zip(range(k), (3, 3, 3)):
         assert (
             len(np.unique(labels_pred[np.where(y == idx)])) == num
