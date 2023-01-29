@@ -25,9 +25,6 @@ def test_kmeans_bad_args():
 
     # testing normal-ish use cases of what is bad/nonsensical arguments
 
-    with pytest.raises(ValueError, match=r"must be a valid pairwise distance metric"):
-        kmeans = cluster.KMeans(k=5, metric="notadistance")
-
     with pytest.raises(TypeError, match=r"k must be numeric"):
         kmeans = cluster.KMeans(k="a")
 
@@ -44,7 +41,7 @@ def test_kmeans_bad_args():
 def test_kmeans_invalid_fit(cluster_data):
     x, y = cluster_data
     k = 3
-    kmeans = cluster.KMeans(k=k, max_iter=100, tol=1e-6, metric="euclidean")
+    kmeans = cluster.KMeans(k=k, max_iter=100, tol=1e-6)
 
     with pytest.raises(
         RuntimeError,
@@ -72,7 +69,7 @@ def test_kmeans_output(cluster_data):
     # see test_data_multipanelpng for visualization
     x, y = cluster_data
     k = 3
-    kmeans = cluster.KMeans(k=k, max_iter=100, tol=1e-6, metric="euclidean")
+    kmeans = cluster.KMeans(k=k, max_iter=100, tol=1e-6)
     kmeans.fit(x)
     labels_pred = kmeans.predict(x)
 
@@ -87,7 +84,7 @@ def test_kmeans_mixed(mixed_data):
     # see test_data_mixed_multipanel.png for visualization; basically they are all squished together
     x, y = mixed_data
     k = 3
-    kmeans = cluster.KMeans(k=k, max_iter=100, tol=1e-6, metric="euclidean")
+    kmeans = cluster.KMeans(k=k, max_iter=100, tol=1e-6)
     kmeans.fit(x)
     labels_pred = kmeans.predict(x)
 
